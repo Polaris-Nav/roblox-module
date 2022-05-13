@@ -1,0 +1,13 @@
+{
+    "name": "PolarisNav",
+    "tree": {
+    	"$className": "DataModel",
+    	"ServerScriptService":{
+            "$className": "ServerScriptService",
+            "PolarisNav": {
+                "$path": "src",
+                "$ignoreUnknownInstances": true
+            }
+    	}
+    }
+}
