@@ -26,7 +26,7 @@ local api = {}
 
 function api.load_mesh(folder)
 	-- Read mesh from save
-	api:load 'mesh_from_save'
+	api:load 'mesh_load'
 	local mesh = api.Mesh.load_dir(folder)
 
 	-- Save line information in points
@@ -61,7 +61,9 @@ function api:load(name)
 
 	-- By default, search for the module in the root
 	local module = script:FindFirstChild(name)
+
 		or script.actions:FindFirstChild(name)
+
 	local value
 	if module then
 		value = require(module)
@@ -75,5 +77,21 @@ function api:load(name)
 end
 
 
+
+
+function api.info(text)
+	print(text)
+
+end
+
+function api.warn(text)
+	warn(text)
+
+end
+
+function api.error(text)
+	warn(text)
+
+end
 
 return setmetatable(api, {__index = api.load})

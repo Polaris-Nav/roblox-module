@@ -56,7 +56,7 @@ function Mesh.generate(token, params, parts)
 						return
 					end
 
-					e:load 'mesh_from_save'
+					e:load 'mesh_save'
 					data = util.decode(data:sub(#signature + 1, -1))
 					if data == nil then
 						e.warn 'Unable to load the received mesh. This is likely a bug.'
@@ -64,7 +64,7 @@ function Mesh.generate(token, params, parts)
 					end
 
 					e.info 'Mesh Received.'
-					e:load 'mesh_from_save'
+					e:load 'mesh_save'
 					local save = util.load(data, 1, F.MeshSave, {})
 					local v = save.version
 					if v < F._VERSION then
