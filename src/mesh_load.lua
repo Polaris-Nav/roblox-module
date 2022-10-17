@@ -59,8 +59,12 @@ function Mesh.format:load(data, i)
 end
 
 function Surface.format:load(data, i, context)
-	local a, b, c = self[1].v3, self[2].v3, self[3].v3
-	self.normal = (c - a):Cross(b - a).Unit
+	local is_valid, normal = Surface.calc_normal(self)
+	if not is_valid then
+		warn 'unable to load a surface due to all points being on a line (invalid)'
+		return nil, i
+	end
+	self.normal = normal
 	self.connections = {}
 	self.adjacent = {}
 	for i, p in ipairs(self) do

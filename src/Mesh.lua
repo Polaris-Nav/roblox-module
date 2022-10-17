@@ -94,14 +94,18 @@ end
 
 
 
-local g_min = Vector3.new(-1, -math.huge, -1)
-local g_max = Vector3.new(1, 0, 1)
-function Mesh:get_ground(point)
+function Mesh:get_ground(point, radius)
+	local g_min = Vector3.new(-radius, -math.huge, -radius)
+	local g_max = Vector3.new(radius, 0, radius)
+
 	local surfaces = {}
 	local j_AABB = e.AABB(
 		point + g_min,
 		point + g_max
 	)
+
+
+
 	self.octree:intersection(
 		j_AABB,
 		surfaces
@@ -114,17 +118,29 @@ function Mesh:get_ground(point)
 		return
 	end
 
+
+
 	local best
 	local best_y = -math.huge
 	for i, ground in ipairs(surfaces) do
+
 		if ground:is_in_bounds(point) then
-			-- print 'In bounds'
 			local y = surfaces[i]:get_height(point)
+
 			if y > best_y then
+
 				best_y = y
 				best = ground
 			end
 		end
+
+	end
+
+
+
+	if best == nil then
+
+		return
 	end
 
 

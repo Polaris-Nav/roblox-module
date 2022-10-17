@@ -21,8 +21,8 @@ local MT = {
 }
 
 setmetatable(Queue, {
-	__call = function(t)
-		return setmetatable(t, MT)
+	__call = function(self, t)
+		return setmetatable(t or {}, MT)
 	end,
 })
 

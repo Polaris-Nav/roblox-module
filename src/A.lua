@@ -35,19 +35,19 @@ local function new(parent, pt, val, len, action)
 end
 
 function A.find_path(s_ground, g_ground, opts)
-	-- If points lay on the same surface
-	if s_ground.surface == g_ground.surface then
-		return {}
-	end
-
-	-- Find the positions on the surfaces below the start and goal=
 	assert(s_ground.surface, 'The start point has no nav mesh below it')
 	assert(g_ground.surface, 'The goal point has no nav mesh below it')
+
+	-- Find the positions on the surfaces below the start and goal
 	local pos_s = s_ground.surface:project_down(s_ground.point)
 	local pos_g = g_ground.surface:project_down(g_ground.point)
-
 	local p_goal = e.Point.new(pos_g, GOAL)
 	local goal_record = new(nil, p_goal, math.huge, math.huge)
+
+	-- If points lay on the same surface
+	if s_ground.surface == g_ground.surface then
+		return {goal_record}
+	end
 
 	-- If points have line of sight
 	if s_ground.mesh == g_ground.mesh
@@ -55,7 +55,6 @@ function A.find_path(s_ground, g_ground, opts)
 	then
 		return {goal_record}
 	end
-
 
 	-- Initial state
 	local fringe = Queue()
@@ -96,12 +95,7 @@ function A.find_path(s_ground, g_ground, opts)
 
 		-- Check if we've reached the goal
 		if record == goal_record then
-			local path = {}
-			for i = record.length, 1, -1 do
-				path[i] = record
-				record = record.parent
-			end
-			return path
+			break
 		end
 
 		record.closed = true
@@ -130,7 +124,18 @@ function A.find_path(s_ground, g_ground, opts)
 		end
 	end
 
-	return {}
+	-- No path to goal
+	if goal_record.length == math.huge then
+		return {}
+	end
+
+	local cur = goal_record
+	local path = {}
+	for i = cur.length, 1, -1 do
+		table.insert(path, i, cur)
+		cur = cur.parent
+	end
+	return path
 end
 
 return A

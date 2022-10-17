@@ -22,6 +22,10 @@ local e = require(script.Parent)
 local AABB = e.AABB
 
 
+local max_rejection_per_stud = 1e-7
+
+local mrps_cos = math.cos(max_rejection_per_stud)
+
 local down = Vector3.new(0, -1, 0)
 
 local Surface = {
@@ -29,8 +33,11 @@ local Surface = {
 }
 Surface.MT = { __index = Surface }
 function Surface.new(pts)
-	local a, b, c = pts[1].v3, pts[2].v3, pts[3].v3
-	pts.normal = (c - a):Cross(b - a).Unit
+	local is_valid, normal = Surface.calc_normal(pts)
+	if not is_valid then
+		return false
+	end
+	pts.normal = normal
 	pts.connections = {}
 	pts.c_conns = {}
 	pts.adjacent = {}
@@ -38,6 +45,30 @@ function Surface.new(pts)
 		p.surfaces[pts] = i
 	end
 	return setmetatable(pts, Surface.MT)
+end
+
+function Surface:calc_normal()
+	local n = #self
+	local a = self[n - 1]
+	local b = self[n]
+	local ab_u = (b.v3 - a.v3).Unit
+
+	local best_v = 0
+	local best_cos = 1
+	for i, c in ipairs(self) do
+		local ac_u = (c.v3 - a.v3).Unit
+		local cos_abs = math.abs(ab_u:Dot(ac_u))
+		if cos_abs < best_cos then
+			best_cos = cos_abs
+			best_v = ac_u
+		end
+	end
+
+	if best_cos > mrps_cos or best_cos < -mrps_cos then
+		return false
+	end
+
+	return true, best_v:Cross(ab_u)
 end
 
 function Surface:rmv(id)
@@ -59,14 +90,14 @@ function Surface:rmv(id)
 	self[n] = nil
 end
 
-function Surface:check_spin()
+function Surface:is_convex()
 	local a, b = self[#self - 1].v3, self[#self].v3
 	for i, c in ipairs(self) do
 		c = c.v3
 		local ab = b - a
 		local ac = c - a
 		local dot = ac:Cross(ab):Dot(self.normal)
-		if dot < -1e-3 or dot < 0 and ab:Dot(ac) < 0 then
+		if dot < -1e-3 or dot < 1e-7 and ab:Dot(ac) < 0 then
 			return false
 		end
 		a = b
@@ -126,7 +157,7 @@ end
 
 function Surface:get_height(v3)
 	local cos = down:Dot(self.normal)
-	if cos == 0 then
+	if math.abs(cos) < 1e-7 then
 		return -math.huge
 	end
 	local v = v3 - self[1].v3
