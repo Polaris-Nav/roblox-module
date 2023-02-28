@@ -47,9 +47,20 @@ end
 function Mesh.format:load(data, i)
 	local reflexes = {}
 	self.reflexes = reflexes
+	local is_reflex = Point.is_reflex
 	for i, p in ipairs(self.points) do
-		if p.ptype >= Point.REFLEX then
+		if is_reflex[p.ptype] then
 			reflexes[p] = true
+		end
+		local is_blocked = true
+		for s, id in pairs(p.surfaces) do
+			if not s.is_barrier then
+				is_blocked = false
+				break
+			end
+		end
+		if is_blocked then
+			p.ptype = Point.BLOCKED
 		end
 	end
 

@@ -90,7 +90,8 @@ function A.find_path(s_ground, g_ground, opts)
 	-- Consider the goal when we reach these
 	local finish = g_ground.mesh:get_visible(g_ground.point, g_ground.surface)
 
-	while #fringe > 0 do
+	-- The goal is the last record, so we'll hit it and exit.
+	while true do
 		record = fringe:pop()
 
 		-- Check if we've reached the goal
@@ -132,7 +133,7 @@ function A.find_path(s_ground, g_ground, opts)
 	local cur = goal_record
 	local path = {}
 	for i = cur.length, 1, -1 do
-		table.insert(path, i, cur)
+		path[i] = cur
 		cur = cur.parent
 	end
 	return path

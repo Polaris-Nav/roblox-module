@@ -22,11 +22,20 @@ local e = require(script.Parent)
 local AABB = e.AABB
 
 
+local util = e.util
+
 local max_rejection_per_stud = 1e-7
+
+local min_normal = 1 - math.sin(math.rad(89))
+
+local h_delta = 1e-3
 
 local mrps_cos = math.cos(max_rejection_per_stud)
 
 local down = Vector3.new(0, -1, 0)
+local up = Vector3.new(0, 1, 0)
+
+local Point = e.Point
 
 local Surface = {
 	thickness = 0.01
@@ -41,22 +50,39 @@ function Surface.new(pts)
 	pts.connections = {}
 	pts.c_conns = {}
 	pts.adjacent = {}
-	for i, p in ipairs(pts) do
-		p.surfaces[pts] = i
-	end
 	return setmetatable(pts, Surface.MT)
+end
+
+function Surface:notify_points()
+	for i, p in ipairs(self) do
+		p:add(self, i)
+	end
 end
 
 function Surface:calc_normal()
 	local n = #self
-	local a = self[n - 1]
-	local b = self[n]
-	local ab_u = (b.v3 - a.v3).Unit
+	local a = self[n]
+	local b = self[1]
+	local delta = b.v3 - a.v3
 
+	local delta_mag = delta.Magnitude
+
+	if delta_mag < util.prec then
+		return false
+	end
+	local ab_u = delta / delta_mag
 	local best_v = 0
 	local best_cos = 1
-	for i, c in ipairs(self) do
-		local ac_u = (c.v3 - a.v3).Unit
+	for i = 1, #self - 1 do
+		local c = self[i]
+		delta = c.v3 - a.v3
+
+		delta_mag = delta.Magnitude
+
+		if delta_mag < util.prec then
+			return false
+		end
+		local ac_u = delta / delta_mag
 		local cos_abs = math.abs(ab_u:Dot(ac_u))
 		if cos_abs < best_cos then
 			best_cos = cos_abs
@@ -106,12 +132,30 @@ function Surface:is_convex()
 	return true
 end
 
+function Surface:is_coplanar()
+	local dot = self[1].v3:Dot(self.normal)
+	for i, a in ipairs(self) do
+		if math.abs(a.v3:Dot(self.normal) - dot) > 1e-7 then
+			return false
+		end
+	end
+	return true
+end
+
 function Surface:next_i(i)
-	return i < (#self) and i + 1 or 1
+	if self.normal.Y < 0 then
+		return i > 1 and i - 1 or #self
+	else
+		return i < (#self) and i + 1 or 1
+	end
 end
 
 function Surface:prev_i(i)
-	return i > 1 and i - 1 or #self
+	if self.normal.Y < 0 then
+		return i < (#self) and i + 1 or 1
+	else
+		return i > 1 and i - 1 or #self
+	end
 end
 
 -- true if inside surface
@@ -142,8 +186,10 @@ function Surface:is_in_bounds(v3)
 		if cross.Y > 0 then
 			return false
 		elseif cross.Y == 0 then
+
 			local ap_m = ap.Magnitude
 			local t = ab.Unit:Dot(ap) / ab.Magnitude
+
 			if ap_m == 0 or t >= 0 and t <= 1 then
 				return nil
 			else
@@ -156,9 +202,9 @@ function Surface:is_in_bounds(v3)
 end
 
 function Surface:get_height(v3)
-	local cos = down:Dot(self.normal)
+	local cos = up:Dot(self.normal)
 	if math.abs(cos) < 1e-7 then
-		return -math.huge
+		return 0
 	end
 	local v = v3 - self[1].v3
 	return v:Dot(self.normal) / cos
@@ -228,10 +274,21 @@ end
 
 function Surface:project_down(point)
 	local height = self:get_height(point)
-	return point - down * height
+	return point - up * height, height
 end
 
 
 
+
+function Surface.MT:__tostring()
+	local pts_str = {''}
+	for i, p in ipairs(self) do
+		pts_str[i + 1] = tostring(p.v3)
+	end
+	return ('<Surface id=%d points={%s\n}>'):format(
+		self.id or -1,
+		table.concat(pts_str,'\n\t')
+	)
+end
 
 return Surface
